@@ -160,7 +160,7 @@ elif not st.session_state.strategy_complete:
 
             # Display input fields for each influencer in the list
             for i, influencer in enumerate(st.session_state.influencers):
-                st.markdown(f"--- \n ##### Influencer {i+1}")
+                st.markdown(f"--- \\n ##### Influencer {i+1}")
                 cols = st.columns([2,1,1,1])
                 st.session_state.influencers[i]['name'] = cols[0].text_input("Name/Handle", value=influencer.get('name',''), key=f"inf_name_{i}")
                 st.session_state.influencers[i]['follower_count'] = cols[1].number_input("Followers", min_value=0, value=influencer.get('follower_count',0), key=f"inf_followers_{i}")
@@ -245,7 +245,7 @@ elif not st.session_state.benchmark_flow_complete:
 
             historical_inputs = {}
             for metric in st.session_state.metrics:
-                st.markdown(f"--- \n #### Data for: **{metric}**")
+                st.markdown(f"--- \\n #### Data for: **{metric}**")
 
                 three_month_avg = st.number_input(f"3-Month Average (Baseline Method) for '{metric}'", min_value=0.0, format="%.2f", key=f"3m_avg_{metric}")
                 df_template = pd.DataFrame([{"Event Name": "Past Event 1", "Baseline (7-day)": None, "Actual (7-day)": None}])
