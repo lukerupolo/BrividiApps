@@ -19,7 +19,7 @@ from strategy import generate_strategy
 st.set_page_config(page_title="Event Marketing Scorecard", layout="wide")
 
 # Version updated to reflect the new feature
-APP_VERSION = "4.2.0" # Version updated for new strategy step
+APP_VERSION = "4.2.1" # Version updated for form fix
 
 if 'app_version' not in st.session_state or st.session_state.app_version != APP_VERSION:
     api_key = st.session_state.get('openai_api_key')
@@ -123,7 +123,6 @@ elif not st.session_state.metrics_confirmed:
             st.error("Please select at least one metric.")
         else:
             st.session_state.metrics = st.session_state.current_metrics
-            # AI categorization now happens here to be ready for the strategy step
             with st.spinner("Using AI to categorize your metrics..."):
                 st.session_state.ai_categories = get_ai_metric_categories(
                     st.session_state.metrics,
@@ -140,6 +139,29 @@ elif not st.session_state.strategy_complete:
     st.header("Step 2: Campaign & Investment Profile")
     st.info("Provide details about your campaign's strategy and investments to generate a detailed profile and inform your benchmarks.")
 
+    # --- Part B: Influencer Management (MOVED OUTSIDE THE FORM) ---
+    with st.expander("Part B: Influencer Investment & Reach"):
+        st.write("Add or remove influencers for the campaign. The data is saved as you type.")
+        # Display input fields for each influencer in the list
+        for i, influencer in enumerate(st.session_state.influencers):
+            st.markdown(f"--- \n ##### Influencer {i+1}")
+            cols = st.columns([2,1,1,1])
+            st.session_state.influencers[i]['name'] = cols[0].text_input("Name/Handle", value=influencer.get('name',''), key=f"inf_name_{i}")
+            st.session_state.influencers[i]['follower_count'] = cols[1].number_input("Followers", min_value=0, value=influencer.get('follower_count',0), key=f"inf_followers_{i}")
+            st.session_state.influencers[i]['engagement_rate'] = cols[2].number_input("Engagement %", min_value=0.0, max_value=100.0, value=influencer.get('engagement_rate',0.0), format="%.2f", key=f"inf_eng_{i}")
+            # The remove button is a regular button and works fine here
+            if cols[3].button(f"Remove", key=f"inf_remove_{i}"):
+                st.session_state.influencers.pop(i)
+                st.rerun()
+
+    # The "Add Influencer" button is now outside the form
+    if st.button("Add Influencer"):
+        st.session_state.influencers.append({})
+        st.rerun()
+    
+    st.markdown("---")
+
+    # The form now only contains the other inputs and the final submit button
     with st.form("strategy_form"):
         # --- Part A: Core Strategy ---
         with st.expander("Part A: Core Strategy", expanded=True):
@@ -154,28 +176,8 @@ elif not st.session_state.strategy_complete:
                 key="strategy_investment"
             )
 
-        # --- Part B: Influencer Investment & Reach ---
-        with st.expander("Part B: Influencer Investment & Reach"):
-            st.write("Add details for each influencer involved in the campaign.")
-
-            # Display input fields for each influencer in the list
-            for i, influencer in enumerate(st.session_state.influencers):
-                st.markdown(f"--- \\n ##### Influencer {i+1}")
-                cols = st.columns([2,1,1,1])
-                st.session_state.influencers[i]['name'] = cols[0].text_input("Name/Handle", value=influencer.get('name',''), key=f"inf_name_{i}")
-                st.session_state.influencers[i]['follower_count'] = cols[1].number_input("Followers", min_value=0, value=influencer.get('follower_count',0), key=f"inf_followers_{i}")
-                st.session_state.influencers[i]['engagement_rate'] = cols[2].number_input("Engagement %", min_value=0.0, max_value=100.0, value=influencer.get('engagement_rate',0.0), format="%.2f", key=f"inf_eng_{i}")
-                if cols[3].button(f"Remove", key=f"inf_remove_{i}"):
-                    st.session_state.influencers.pop(i)
-                    st.rerun()
-
-
-            if st.button("Add Influencer"):
-                st.session_state.influencers.append({})
-                st.rerun()
-
         # --- Part C: Owned Organic Channel Performance ---
-        with st.expander("Part C: Owned Organic Channel Performance"):
+        with st.expander("Part C: Owned Organic Channel Performance", expanded=True):
             st.write("Provide the baseline performance for your own social media or content channels.")
             owned_avg_reach = st.number_input("Average Historical Reach (per major post)", min_value=0, key="owned_reach")
             owned_avg_engagement = st.number_input("Average Historical Engagement Rate (%)", min_value=0.0, max_value=100.0, format="%.2f", key="owned_engagement")
@@ -187,6 +189,7 @@ elif not st.session_state.strategy_complete:
                 "avg_reach": owned_avg_reach,
                 "avg_engagement": owned_avg_engagement
             }
+            # Note: We read st.session_state.influencers directly here
             strategy_profile = generate_strategy(
                 objective,
                 investment,
@@ -199,7 +202,7 @@ elif not st.session_state.strategy_complete:
             st.session_state.strategy_complete = True
             st.rerun()
 
-    # This part remains to display the results after submission, but is now outside the "elif" block
+    # This part remains to display the results after submission
     if st.session_state.get("strategy_complete"):
         profile = st.session_state.strategy_profile
         st.markdown("---")
@@ -209,7 +212,6 @@ elif not st.session_state.strategy_complete:
              st.markdown("#### Calculated Profile Outputs")
              df_outputs = pd.DataFrame([profile["calculated_outputs"]])
              st.dataframe(df_outputs, use_container_width=True, hide_index=True)
-
 
         if profile.get("prioritized_metrics"):
             st.markdown("#### Metric Prioritization")
@@ -223,12 +225,10 @@ elif not st.session_state.strategy_complete:
 
         st.markdown("---")
         if st.button("Proceed to Benchmark Calculation →", type="primary"):
-            # This button now just moves to the next step without doing calculations
             st.rerun()
 
-
 # ================================================================================
-# Step 3: Optional Benchmark Calculation (was Step 2)
+# Step 3: Optional Benchmark Calculation
 # ================================================================================
 elif not st.session_state.benchmark_flow_complete:
     st.header("Step 3: Benchmark Calculation (Optional)")
@@ -242,15 +242,12 @@ elif not st.session_state.benchmark_flow_complete:
     if benchmark_choice == "Yes, calculate benchmarks from past events.":
         with st.form("benchmark_data_form"):
             st.info("For each metric, provide its 3-month average from your external tool, then enter the Baseline and Actual values from past events to calculate the expected uplift.")
-
             historical_inputs = {}
             for metric in st.session_state.metrics:
-                st.markdown(f"--- \\n #### Data for: **{metric}**")
-
+                st.markdown(f"--- \n #### Data for: **{metric}**")
                 three_month_avg = st.number_input(f"3-Month Average (Baseline Method) for '{metric}'", min_value=0.0, format="%.2f", key=f"3m_avg_{metric}")
                 df_template = pd.DataFrame([{"Event Name": "Past Event 1", "Baseline (7-day)": None, "Actual (7-day)": None}])
                 edited_df = st.data_editor(df_template, key=f"hist_editor_{metric}", num_rows="dynamic", use_container_width=True)
-
                 historical_inputs[metric] = {"historical_df": edited_df, "three_month_avg": three_month_avg}
 
             if st.form_submit_button("Calculate All Proposed Benchmarks & Proceed →", type="primary"):
@@ -267,7 +264,7 @@ elif not st.session_state.benchmark_flow_complete:
             st.rerun()
 
 # ================================================================================
-# Step 4 & 5 - Main App Logic (was Step 3 & 4)
+# Step 4 & 5 - Main App Logic
 # ================================================================================
 else:
     app_config = {
@@ -277,26 +274,22 @@ else:
         'avg_actuals': st.session_state.get('avg_actuals')
     }
 
-    # --- Step 4: Build & Save Scorecard Moments ---
     st.header("Step 4: Build & Save Scorecard Moments")
-
     if st.session_state.sheets_dict is None:
         st.session_state.sheets_dict = process_scorecard_data(app_config)
 
     st.info("Fill in the 'Actuals' and 'Benchmark' columns, give the scorecard a name, and save it as a 'moment'. You can create multiple moments.")
-
     current_scorecard_df = next(iter(st.session_state.sheets_dict.values()), None)
 
     if current_scorecard_df is not None:
         edited_df = st.data_editor(current_scorecard_df, key="moment_editor", use_container_width=True, num_rows="dynamic")
-
         edited_df['Actuals'] = pd.to_numeric(edited_df['Actuals'], errors='coerce')
         edited_df['Benchmark'] = pd.to_numeric(edited_df['Benchmark'], errors='coerce')
         edited_df['% Difference'] = ((edited_df['Actuals'] - edited_df['Benchmark']) / edited_df['Benchmark'].replace(0, pd.NA)).apply(lambda x: f"{x:.1%}" if pd.notna(x) else None)
-
+        
         col1, col2 = st.columns([3, 1])
         moment_name = col1.text_input("Name for this Scorecard Moment", placeholder="e.g., Pre-Reveal, Launch Week")
-
+        
         if col2.button("💾 Save Moment", use_container_width=True, type="primary"):
             if moment_name:
                 st.session_state.saved_moments[moment_name] = edited_df
@@ -309,26 +302,25 @@ else:
     if st.session_state.saved_moments:
         st.markdown("---")
         st.subheader("Saved Scorecard Moments")
-        if st.session_state.benchmark_df is not None and not st.session_state.benchmark_df.empty:
+        if st.session_state.benchmark_df is not None and not st.session_stte.benchmark_df.empty:
             with st.expander("View Benchmark Calculation Summary"):
                 st.dataframe(st.session_state.benchmark_df.set_index("Metric"), use_container_width=True)
-
+        
         for name, df in st.session_state.saved_moments.items():
             with st.expander(f"View Moment: {name}"):
                 st.dataframe(df, use_container_width=True)
         st.session_state.show_ppt_creator = True
 
-    # --- Step 5: Create Presentation ---
     if st.session_state.get('show_ppt_creator'):
         st.markdown("---")
         st.header("Step 5: Create Presentation")
-
+        
         if st.session_state.get("presentation_buffer"):
             st.download_button(label="✅ Download Your Presentation!", data=st.session_state.presentation_buffer, file_name="game_scorecard_presentation.pptx", use_container_width=True)
 
         with st.form("ppt_form"):
             st.subheader("Presentation Style & Details")
-
+            
             if st.session_state.saved_moments:
                 selected_moments = st.multiselect("Select which saved moments to include in the presentation:",
                     options=list(st.session_state.saved_moments.keys()),
@@ -342,7 +334,7 @@ else:
             image_region_prompt = col2.text_input("Region for AI Background Image", "Brazil")
             ppt_title = st.text_input("Presentation Title", "Game Scorecard")
             ppt_subtitle = st.text_input("Presentation Subtitle", "A detailed analysis")
-
+            
             submitted = st.form_submit_button("Generate Presentation", use_container_width=True)
 
             if submitted:
@@ -359,7 +351,7 @@ else:
                             sheets_dict=presentation_data,
                             style_guide=style_guide,
                             region_prompt=image_region_prompt,
-                            openai_api_key=st.session_state.openai_api_key
+                            openai_api_key=st.session_state.openai_api_key 
                         )
                         st.session_state["presentation_buffer"] = ppt_buffer
                         st.rerun()
