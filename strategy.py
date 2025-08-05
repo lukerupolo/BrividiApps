@@ -29,18 +29,36 @@ def generate_strategy(objective, investment, metrics, ai_categories, influencer_
     # --- Part 2: Calculate Influencer Metrics ---
     total_potential_reach = 0
     total_projected_engaged_audience = 0
+    total_average_views = 0
+    total_cost = 0
+    total_cpv = 0
     if influencer_data:
         for influencer in influencer_data:
             followers = influencer.get("follower_count", 0)
             engagement_rate = influencer.get("engagement_rate", 0) / 100.0  # Convert from % to decimal
+            average_views = influencer.get("average_views", 0)
+            cost_per_video = influencer.get("cost_per_video", 0)
+            
             total_potential_reach += followers
             total_projected_engaged_audience += followers * engagement_rate
+            total_average_views += average_views
+            total_cost += cost_per_video
+            
+            # Calculate CPV for this influencer if both views and cost are available
+            if average_views > 0 and cost_per_video > 0:
+                total_cpv += cost_per_video / average_views
 
     # --- Part 3: Consolidate Calculated Outputs ---
+    # Calculate average CPV across all influencers
+    avg_cpv = total_cpv / len(influencer_data) if influencer_data and total_cpv > 0 else 0
+    
     calculated_outputs = {
         "Investment Weighting Factor": f"{investment_weighting_factor}x",
         "Total Potential Influencer Reach": f"{total_potential_reach:,.0f}",
         "Total Projected Engaged Audience": f"{total_projected_engaged_audience:,.0f}",
+        "Total Average Views": f"{total_average_views:,.0f}",
+        "Total Cost (All Videos)": f"${total_cost:,.2f}",
+        "Average CPV": f"${avg_cpv:.4f}" if avg_cpv > 0 else "N/A",
         "Owned Channel Avg. Reach": f"{owned_channel_data.get('avg_reach', 0):,.0f}",
         "Owned Channel Avg. Engagement": f"{owned_channel_data.get('avg_engagement', 0)}%"
     }
