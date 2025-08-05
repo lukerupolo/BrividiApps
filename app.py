@@ -88,7 +88,8 @@ elif not st.session_state.metrics_confirmed:
         "Nb. press articles", "Social Sentiment (Franchise)", "Trailer avg % viewed (Youtube)",
         "Email Open Rate (OR)", "Email Click Through Rate (CTR)", "Labs program sign-ups",
         "Discord channel sign-ups", "% Trailer views from Discord (Youtube)",
-        "Labs sign up click-through Web", "Sessions", "DAU", "Hours Watched (Streams)"
+        "Labs sign up click-through Web", "Sessions", "DAU", "Hours Watched (Streams)",
+        "CPV (Cost Per Views)"
     ]
 
     all_possible_metrics = sorted(list(set(predefined_metrics + st.session_state.current_metrics)))
