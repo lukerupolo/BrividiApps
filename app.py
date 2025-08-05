@@ -135,7 +135,7 @@ elif not st.session_state.metrics_confirmed:
 # ================================================================================
 # MODIFIED Step 2: Campaign & Investment Profile
 # ================================================================================
-elif not st.session_state.strategy_complete:
+elif not st.session_state.benchmark_flow_complete:
     st.header("Step 2: Campaign & Investment Profile")
     st.info("Provide details about your campaign's strategy and investments to generate a detailed profile and inform your benchmarks.")
 
@@ -145,12 +145,14 @@ elif not st.session_state.strategy_complete:
         # Display input fields for each influencer in the list
         for i, influencer in enumerate(st.session_state.influencers):
             st.markdown(f"--- \n ##### Influencer {i+1}")
-            cols = st.columns([2,1,1,1])
+            cols = st.columns([2,1,1,1,1,1])
             st.session_state.influencers[i]['name'] = cols[0].text_input("Name/Handle", value=influencer.get('name',''), key=f"inf_name_{i}")
             st.session_state.influencers[i]['follower_count'] = cols[1].number_input("Followers", min_value=0, value=influencer.get('follower_count',0), key=f"inf_followers_{i}")
             st.session_state.influencers[i]['engagement_rate'] = cols[2].number_input("Engagement %", min_value=0.0, max_value=100.0, value=influencer.get('engagement_rate',0.0), format="%.2f", key=f"inf_eng_{i}")
+            st.session_state.influencers[i]['average_views'] = cols[3].number_input("Average Views", min_value=0, value=influencer.get('average_views',0), key=f"inf_views_{i}")
+            st.session_state.influencers[i]['cost_per_video'] = cols[4].number_input("Cost Per Video", min_value=0.0, value=influencer.get('cost_per_video',0.0), format="%.2f", key=f"inf_cost_{i}")
             # The remove button is a regular button and works fine here
-            if cols[3].button(f"Remove", key=f"inf_remove_{i}"):
+            if cols[5].button(f"Remove", key=f"inf_remove_{i}"):
                 st.session_state.influencers.pop(i)
                 st.rerun()
 
@@ -225,6 +227,7 @@ elif not st.session_state.strategy_complete:
 
         st.markdown("---")
         if st.button("Proceed to Benchmark Calculation →", type="primary"):
+            st.session_state.benchmark_flow_complete = False  # Ensure we can proceed to benchmark step
             st.rerun()
 
 # ================================================================================
@@ -302,7 +305,7 @@ else:
     if st.session_state.saved_moments:
         st.markdown("---")
         st.subheader("Saved Scorecard Moments")
-        if st.session_state.benchmark_df is not None and not st.session_stte.benchmark_df.empty:
+        if st.session_state.benchmark_df is not None and not st.session_state.benchmark_df.empty:
             with st.expander("View Benchmark Calculation Summary"):
                 st.dataframe(st.session_state.benchmark_df.set_index("Metric"), use_container_width=True)
         
