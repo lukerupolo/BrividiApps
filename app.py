@@ -88,7 +88,8 @@ elif not st.session_state.metrics_confirmed:
         "Nb. press articles", "Social Sentiment (Franchise)", "Trailer avg % viewed (Youtube)",
         "Email Open Rate (OR)", "Email Click Through Rate (CTR)", "Labs program sign-ups",
         "Discord channel sign-ups", "% Trailer views from Discord (Youtube)",
-        "Labs sign up click-through Web", "Sessions", "DAU", "Hours Watched (Streams)"
+        "Labs sign up click-through Web", "Sessions", "DAU", "Hours Watched (Streams)",
+        "CPV (Cost Per View)"
     ]
 
     all_possible_metrics = sorted(list(set(predefined_metrics + st.session_state.current_metrics)))
@@ -145,12 +146,14 @@ elif not st.session_state.strategy_complete:
         # Display input fields for each influencer in the list
         for i, influencer in enumerate(st.session_state.influencers):
             st.markdown(f"--- \n ##### Influencer {i+1}")
-            cols = st.columns([2,1,1,1])
+            cols = st.columns([2,1,1,1,1,1])
             st.session_state.influencers[i]['name'] = cols[0].text_input("Name/Handle", value=influencer.get('name',''), key=f"inf_name_{i}")
             st.session_state.influencers[i]['follower_count'] = cols[1].number_input("Followers", min_value=0, value=influencer.get('follower_count',0), key=f"inf_followers_{i}")
             st.session_state.influencers[i]['engagement_rate'] = cols[2].number_input("Engagement %", min_value=0.0, max_value=100.0, value=influencer.get('engagement_rate',0.0), format="%.2f", key=f"inf_eng_{i}")
+            st.session_state.influencers[i]['average_views'] = cols[3].number_input("Avg Views", min_value=0, value=influencer.get('average_views',0), key=f"inf_views_{i}")
+            st.session_state.influencers[i]['cost_per_video'] = cols[4].number_input("Cost/Video ($)", min_value=0.0, value=influencer.get('cost_per_video',0.0), format="%.2f", key=f"inf_cost_{i}")
             # The remove button is a regular button and works fine here
-            if cols[3].button(f"Remove", key=f"inf_remove_{i}"):
+            if cols[5].button(f"Remove", key=f"inf_remove_{i}"):
                 st.session_state.influencers.pop(i)
                 st.rerun()
 
